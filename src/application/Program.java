@@ -6,7 +6,7 @@ public class Program {
 
 	public static void main(String[] args) {
 		
-		Position pos = new Position(2, 2);
+		Position pos = new Position(1, 2);
 		
 		System.out.println(pos);
 	}
