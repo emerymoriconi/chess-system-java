@@ -2,6 +2,7 @@ package chess;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import boardgame.Board;
 import boardgame.Piece;
@@ -16,6 +17,7 @@ public class ChessMatch {
 	private int turn;
 	private Color currentPlayer;
 	private Board board;
+	private boolean check;
 	
 	private List<Piece> piecesOnTheBoard = new ArrayList<>();
 	private List<Piece> capturedPieces = new ArrayList<>();
@@ -34,6 +36,10 @@ public class ChessMatch {
 	
 	public Color getCurrentPlayer() {
 		return currentPlayer;
+	}
+	
+	public boolean getCheck() {
+		return check;
 	}
 	
 	//retorna a matriz de peças da partida de xadrez
@@ -62,6 +68,14 @@ public class ChessMatch {
 		//source: posição de origem
 		//target: posição de destino
 		Piece capturedPiece = makeMove(source, target);
+		
+		if (testCheck(currentPlayer)) {
+			undoMove(source, target, capturedPiece);
+			throw new ChessException("You can't put yourself in check");
+		}
+		
+		check = (testCheck(opponent(currentPlayer))) ? true : false;
+		
 		nextTurn();
 		return (ChessPiece)capturedPiece;
 	}
@@ -76,6 +90,17 @@ public class ChessMatch {
 			capturedPieces.add(capturedPiece);
 		}
 		return capturedPiece;
+	}
+	
+	private void undoMove(Position source, Position target, Piece capturedPiece) {
+		Piece p = board.removePiece(target);
+		board.placePiece(p, source);
+		
+		if(capturedPiece != null) {
+			board.placePiece(capturedPiece, target);
+			capturedPieces.remove(capturedPiece);
+			piecesOnTheBoard.add(capturedPiece);
+		}
 	}
 	
 	private void validateSourcePosition(Position position) {
@@ -102,6 +127,38 @@ public class ChessMatch {
 		turn++;
 		//condicional ternária
 		currentPlayer = (currentPlayer == Color.WHITE) ? Color.BLACK : Color.WHITE;
+	}
+	
+	private Color opponent(Color color) {
+		//se a cor for igual a branco, retorna o preto, se não, retorna o branco
+		return (color == Color.WHITE) ? Color.BLACK : Color.WHITE;
+	}
+	
+	private ChessPiece king(Color color) {
+		//filtra-se uma lista utilizando expressões lambda
+		List<Piece> list = piecesOnTheBoard.stream().filter(x -> ((ChessPiece)x).getColor() == color).collect(Collectors.toList());
+		for (Piece p : list) {
+			if (p instanceof King) {
+				return (ChessPiece)p;
+			}
+		}
+		throw new IllegalStateException("There is no " + color + " king on the board");
+	}
+	
+	private boolean testCheck(Color color) {
+		//posição do rei em formato de matriz
+		Position kingPosition = king(color).getChessPosition().toPosition();
+		//lista das peças do tabuleiro filtradas com a cor oponente à cor do rei em questão
+		List<Piece> opponentPieces = piecesOnTheBoard.stream().filter(x -> ((ChessPiece)x).getColor() == opponent(color)).collect(Collectors.toList());
+		//para cada peça dessa lista, teremos que testar se existe um movimento que leva até a posição do rei (xeque)
+		for(Piece p : opponentPieces) {
+			//matriz de movimentos possíveis
+			boolean[][] mat = p.possibleMoves();
+			if(mat[kingPosition.getRow()][kingPosition.getColumn()]) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	private void placeNewPiece(char column, int row, ChessPiece piece) {
