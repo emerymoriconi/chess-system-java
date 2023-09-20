@@ -18,7 +18,8 @@ public class Program {
 		ChessMatch chessMatch = new ChessMatch();
 		List<ChessPiece> captured = new ArrayList<>();
 		
-		while(true) {
+		//a partida vai acontecer enquanto não estiver em xeque-mate
+		while(!chessMatch.getCheckMate()) {
 			try {
 				UI.clearScreen();
 				//imprime o tabuleiro na tela
@@ -49,5 +50,7 @@ public class Program {
 				sc.nextLine();
 			}
 		}
+		UI.clearScreen();
+		UI.printMatch(chessMatch, captured);
 	}
 }
